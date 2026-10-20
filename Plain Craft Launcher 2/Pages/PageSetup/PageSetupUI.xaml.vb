@@ -28,14 +28,7 @@ Public Class PageSetupUI
 
         SliderLoad()
 
-        If BuildType = BuildTypes.Release Then PanLauncherHide.Visibility = Visibility.Visible
-
-        '设置解锁
-        If Not RadioLauncherTheme8.IsEnabled Then LabLauncherTheme8Copy.ToolTip = $"累积赞助达到 ¥23.33 后，在爱发电私信发送【土豆 {Identify}】以解锁。" & vbCrLf & "右键打开赞助页面，如果觉得 PCL 做得还不错就支持一下吧 =w=！"
-        RadioLauncherTheme8.ToolTip = $"累积赞助达到 ¥23.33 后，在爱发电私信发送【土豆 {Identify}】以解锁"
-        If Not RadioLauncherTheme9.IsEnabled Then LabLauncherTheme9Copy.ToolTip = "· 反馈一个 Bug，在标记为 [完成] 后回复识别码要求解锁（右键打开反馈页面）" & vbCrLf & "· 提交一个 Pull Request 或主页预设，在标记为 [完成] 后回复识别码要求解锁"
-        RadioLauncherTheme9.ToolTip = "· 反馈一个 Bug，在标记为 [完成] 后回复识别码要求解锁" & vbCrLf & "· 提交一个 Pull Request 或主页预设，在标记为 [完成] 后回复识别码要求解锁"
-        '极客蓝的处理在 ThemeCheck 中
+        '本分支默认解锁所有主题，不再显示赞助遮罩与解锁方式提示
 
     End Sub
     Public Sub Refresh()
@@ -351,6 +344,18 @@ Refresh:
     End Sub
 
     '主题
+    Private Theme12ClickCount As Integer = 0
+    Private Sub RadioLauncherTheme12_Click(sender As Object, e As MouseButtonEventArgs) Handles RadioLauncherTheme12.PreviewMouseLeftButtonUp
+        '连点五次滑稽彩，解锁隐藏的“真·滑稽彩”
+        If ThemeDontClick = 2 Then Return
+        Theme12ClickCount += 1
+        If Theme12ClickCount >= 5 Then
+            Theme12ClickCount = 0
+            ThemeDontClick = 2
+            Hint("真·滑稽彩 已解锁！", HintType.Green)
+            ThemeRefresh()
+        End If
+    End Sub
     Private Sub LabLauncherTheme5Unlock_MouseLeftButtonUp(sender As Object, e As MouseButtonEventArgs) Handles LabLauncherTheme5Unlock.MouseLeftButtonUp
         RadioLauncherTheme5Gray.Opacity -= 0.7
         RadioLauncherTheme5.Opacity += 0.7

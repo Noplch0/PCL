@@ -15,7 +15,8 @@ Friend Module ModSecret
 
 #Region "网络鉴权"
 
-    Public Const RestrictMcDownload As Boolean = True
+    '本分支：不限制 MC 本体下载
+    Public Const RestrictMcDownload As Boolean = False
     Friend Function SecretCdnSign(UrlWithMark As String) As String
         If Not UrlWithMark.EndsWithF("{CDN}") Then Return UrlWithMark
         Return UrlWithMark.Replace("{CDN}", "").Replace(" ", "%20")
@@ -69,6 +70,52 @@ Friend Module ModSecret
         Try
             If ThemeNow = NewTheme AndAlso NewTheme >= 0 Then Return
             If NewTheme >= 0 Then ThemeNow = NewTheme
+
+            '根据主题应用配色（官方配色表未开源，此处为本分支的等价实现）
+            If ThemeDontClick = 2 Then
+                '真·滑稽彩：全饱和度高速循环
+                ColorHue = RandomInteger(0, 359)
+                ColorSat = 100
+                ColorLightAdjust = 0
+                ColorHueTopbarDelta = RandomInteger(10, 40)
+            Else
+                Select Case ThemeNow
+                    Case 0 '龙猫蓝
+                        ColorHue = 210 : ColorSat = 85 : ColorLightAdjust = 0 : ColorHueTopbarDelta = 0
+                    Case 1 '甜柠青
+                        ColorHue = 165 : ColorSat = 80 : ColorLightAdjust = 0 : ColorHueTopbarDelta = 0
+                    Case 2 '小草绿
+                        ColorHue = 125 : ColorSat = 75 : ColorLightAdjust = 0 : ColorHueTopbarDelta = 0
+                    Case 3 '菠萝黄
+                        ColorHue = 50 : ColorSat = 95 : ColorLightAdjust = 0 : ColorHueTopbarDelta = 0
+                    Case 4 '橡木棕
+                        ColorHue = 28 : ColorSat = 60 : ColorLightAdjust = 0 : ColorHueTopbarDelta = 0
+                    Case 5 '玄素黑：灰色是个谎言（近灰但保留一丝蓝调）
+                        ColorHue = 210 : ColorSat = 9 : ColorLightAdjust = 0 : ColorHueTopbarDelta = 0
+                    Case 6 '铁杆粉
+                        ColorHue = 335 : ColorSat = 80 : ColorLightAdjust = 0 : ColorHueTopbarDelta = 0
+                    Case 7 '神秘紫
+                        ColorHue = 275 : ColorSat = 80 : ColorLightAdjust = 0 : ColorHueTopbarDelta = 0
+                    Case 8 '秋仪金
+                        ColorHue = 43 : ColorSat = 90 : ColorLightAdjust = 0 : ColorHueTopbarDelta = 0
+                    Case 9 '活跃橙
+                        ColorHue = 22 : ColorSat = 90 : ColorLightAdjust = 0 : ColorHueTopbarDelta = 0
+                    Case 10 '跳票红
+                        ColorHue = 356 : ColorSat = 85 : ColorLightAdjust = 0 : ColorHueTopbarDelta = 0
+                    Case 11 '极客蓝
+                        ColorHue = 200 : ColorSat = 95 : ColorLightAdjust = 0 : ColorHueTopbarDelta = 12
+                    Case 12 '滑稽彩：每次刷新随机变色
+                        ColorHue = RandomInteger(0, 359)
+                        ColorSat = 90 : ColorLightAdjust = 0 : ColorHueTopbarDelta = 0
+                    Case 13 '欧皇彩：金光渐变
+                        ColorHue = 46 : ColorSat = 100 : ColorLightAdjust = 0 : ColorHueTopbarDelta = 18
+                    Case 14 '自定义
+                        ColorHue = Settings.Get(Of Integer)("UiLauncherHue")
+                        ColorSat = Settings.Get(Of Integer)("UiLauncherSat")
+                        ColorLightAdjust = Settings.Get(Of Integer)("UiLauncherLight") - 20
+                        ColorHueTopbarDelta = Settings.Get(Of Integer)("UiLauncherDelta")
+                End Select
+            End If
 
             Color1 = New MyColor().FromHSL2(ColorHue, ColorSat * 0.2, 25 + ColorLightAdjust * 0.3)
             Color2 = New MyColor().FromHSL2(ColorHue, ColorSat, 45 + ColorLightAdjust)
@@ -132,12 +179,33 @@ Friend Module ModSecret
             FrmMain.PanForm.Background.Freeze()
         End Sub)
     End Sub
+    ''' <summary>
+    ''' 本分支默认解锁所有主题：启用全部主题按钮并移除解锁遮罩。
+    ''' </summary>
     Friend Sub ThemeCheckAll(EffectSetup As Boolean)
+        If FrmSetupUI Is Nothing OrElse Not FrmSetupUI.IsLoaded Then Return
+        Try
+            '启用所有主题单选按钮
+            For Each Control In FrmSetupUI.PanLauncherTheme.Children
+                If TypeOf Control Is MyRadioBox Then CType(Control, MyRadioBox).IsEnabled = True
+            Next
+            '移除玄素黑的解锁遮罩，显示真实按钮
+            FrmSetupUI.RadioLauncherTheme5Gray.Visibility = Visibility.Collapsed
+            FrmSetupUI.LabLauncherTheme5Unlock.Visibility = Visibility.Collapsed
+            FrmSetupUI.RadioLauncherTheme5.Opacity = 1
+            '移除其余主题上拦截点击的半透明遮罩
+            FrmSetupUI.LabLauncherTheme8Copy.Visibility = Visibility.Collapsed
+            FrmSetupUI.LabLauncherTheme9Copy.Visibility = Visibility.Collapsed
+            FrmSetupUI.LabLauncherTheme11Click.Visibility = Visibility.Collapsed
+        Catch ex As Exception
+            Logger.Error(ex, "刷新主题解锁状态失败")
+        End Try
     End Sub
     Friend Function ThemeCheckOne(Id As Integer) As Boolean
         Return True
     End Function
     Friend Function ThemeUnlock(Id As Integer, Optional ShowDoubleHint As Boolean = True, Optional UnlockHint As String = Nothing) As Boolean
+        '本分支中所有主题默认解锁，不存在“新解锁”的主题
         Return False
     End Function
 
@@ -145,8 +213,62 @@ Friend Module ModSecret
 
 #Region "更新"
 
+    '本分支的更新源：本仓库的 GitHub Releases（不检查官方更新）
+    Public Const UpdateRepoUrl As String = "https://github.com/Noplch0/PCL"
+    Public ReadOnly UpdateApiUrls As String() =
+        {"https://api.github.com/repos/Noplch0/PCL/releases?per_page=1",
+         "https://gh-proxy.com/https://api.github.com/repos/Noplch0/PCL/releases?per_page=1"}
+
     Friend Sub UpdateCheckByButton()
-        Hint("该版本中不包含更新功能……")
+        RunInNewThread(
+        Sub()
+            Try
+                Hint("正在检查更新……", HintType.Blue)
+                '依次尝试直连与镜像访问 GitHub API（用 releases 列表接口，无发布时返回空数组而非 404）
+                Dim ReleaseJson As JObject = Nothing
+                Dim FetchSuccess As Boolean = False
+                Dim LastError As Exception = Nothing
+                For Each Url As String In UpdateApiUrls
+                    Try
+                        Dim ReleaseList As JArray = JArray.Parse(NetRequestByLoader(Url, IsJson:=True, SimulateBrowserHeaders:=True))
+                        If ReleaseList.Count > 0 Then ReleaseJson = CType(ReleaseList(0), JObject)
+                        FetchSuccess = True
+                        Exit For
+                    Catch ex As Exception
+                        LastError = ex
+                    End Try
+                Next
+                If Not FetchSuccess Then Throw New Exception("无法连接到 GitHub，请检查网络状况", LastError)
+                If ReleaseJson Is Nothing Then
+                    Hint($"本分支尚未发布任何版本，可前往 GitHub 查看：{UpdateRepoUrl}", HintType.Blue)
+                    Return
+                End If
+                '与当前版本比较
+                Dim TagName As String = If(ReleaseJson("tag_name")?.ToString, "")
+                Dim NewestVersion As Version = Nothing
+                Dim CurrentVersion As Version = Nothing
+                If Not Version.TryParse(TagName.TrimStart("v"c, "V"c).Trim(), NewestVersion) OrElse
+                   Not Version.TryParse(VersionBaseName, CurrentVersion) Then
+                    Hint("版本信息解析失败，请前往 GitHub 查看最新版本", HintType.Red)
+                    OpenWebsite(UpdateRepoUrl & "/releases")
+                    Return
+                End If
+                If NewestVersion <= CurrentVersion Then
+                    Hint($"当前已是最新版本（{VersionBaseName}）", HintType.Green)
+                    Return
+                End If
+                '有新版本，提示并打开发布页
+                Dim ReleaseUrl As String = If(ReleaseJson("html_url")?.ToString, UpdateRepoUrl & "/releases")
+                Dim ReleaseNote As String = If(ReleaseJson("body")?.ToString, "").Replace(vbLf, vbCrLf)
+                If ReleaseNote.Length > 300 Then ReleaseNote = ReleaseNote.Substring(0, 300) & "……"
+                Dim Message As String = $"本分支有新版本：{TagName}（当前 {VersionBaseName}）"
+                If ReleaseNote.Length > 0 Then Message &= $"{vbCrLf}{vbCrLf}{ReleaseNote}"
+                If MyMsgBox(Message, "更新可用", "前往下载", "取消") = 1 Then OpenWebsite(ReleaseUrl)
+            Catch ex As Exception
+                Logger.Error(ex, "检查更新失败")
+                Hint("检查更新失败：" & ex.Message, HintType.Red)
+            End Try
+        End Sub, "更新检查")
     End Sub
 
     Friend IsUpdateWaitingRestart As Boolean = False

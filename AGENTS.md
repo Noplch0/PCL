@@ -25,7 +25,8 @@
 
 - **微软登录 ClientId**：存于 GitHub Secret `CLIENT_ID`（CI 构建注入）+ 本机用户环境变量 `PCL_MS_CLIENT_ID`（本地 exe 运行时读取，见 `ModSecret.vb` 开头）。对应的 Azure 应用注册已启用"移动和桌面应用"平台与"允许公共客户端流"，设备码流程（登录步骤 1~3）实测可用
 - **⚠️ 已知限制（2026-10 实测）**：登录步骤 4 `api.minecraftservices.com/authentication/login_with_xbox` 对自建 Azure 应用返回 403 `"Invalid app registration"`——Mojang 维护 client id 服务端白名单，自建 id 一律拒绝，且目前无公开申请渠道（见 aka.ms/AppRegInfo 及 Microsoft Q&A 多个无解帖子）。**个人 fork 无法合规实现正版登录**；正版需求请用官方 PCL 正式版（可与本 fork 共存共用 .minecraft），勿盗用其他启动器的 client id（会导致其被吊销）
-- **CurseForge API Key**（可选）：Secret `CURSEFORGE_API_KEY` / 环境变量 `PCL_CURSEFORGE_API_KEY`
+- **CurseForge API Key**：已配置（2026-10-23 实测 `GET /v1/games/432` 返回 200）。key 只存于 GitHub Secret `CURSEFORGE_API_KEY`（CI 构建注入）与本机用户环境变量 `PCL_CURSEFORGE_API_KEY`（本地 exe 运行时读取），仓库内不出现明文。运行时由 `SecretHeadersSign` 给 `api.curseforge.com` / `forgecdn.net` 请求加 `x-api-key` 头
+- **CI 注入实现约束**：`build.yml` 的 `Replace` 步骤必须用字符串 `.Replace()` 做字面量替换，**不能用 `-replace`**。标记串里的 `If(...)` 在正则里会被当成分组（实际匹配 `Ifxxx`）从而永不命中——旧写法因此一直静默失败，两个 Secret 都没真正注入；且 Secret 值形如 `$2a$10$...`，`$n` 在正则替换串中会被当作分组引用。脚本还会在找不到标记时直接 throw，避免再次静默产出无 key 的 exe
 
 ## 本地构建（本机无 .NET 4.8 开发包、BuildTools 缺 .NET SDK 的 workaround）
 

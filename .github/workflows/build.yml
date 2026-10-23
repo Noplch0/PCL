@@ -50,11 +50,29 @@ jobs:
         Set-Location ${{ GITHUB.WORKSPACE }}
 
 
+    # 注意：必须用字符串的 .Replace() 做字面量替换，不能用 -replace。
+    # -replace 的模式是正则，标记里的 "If(" 会被当成分组而匹配失败（曾导致 Secret 全部静默注入失败）；
+    # 且 Secret 值含 "$2a$10$..." 这类 "$n"，在正则替换串里会被当成分组引用。
     - name: Replace
+      env:
+        MS_CLIENT_ID_VALUE: ${{ secrets.CLIENT_ID }}
+        CURSEFORGE_API_KEY_VALUE: ${{ secrets.CURSEFORGE_API_KEY }}
       run: |
-        (gc "Plain Craft Launcher 2\Modules\ModSecret.vb") -replace 'Public OAuthClientId As String = If(Environment.GetEnvironmentVariable("PCL_MS_CLIENT_ID"), "")', 'Public OAuthClientId As String = If(Environment.GetEnvironmentVariable("PCL_MS_CLIENT_ID"), "${{ secrets.CLIENT_ID }}")' | Out-File "Plain Craft Launcher 2\Modules\ModSecret.vb"
-        (gc "Plain Craft Launcher 2\Modules\ModSecret.vb") -replace 'Public CurseForgeAPIKey As String = If(Environment.GetEnvironmentVariable("PCL_CURSEFORGE_API_KEY"), "")', 'Public CurseForgeAPIKey As String = If(Environment.GetEnvironmentVariable("PCL_CURSEFORGE_API_KEY"), "${{ secrets.CURSEFORGE_API_KEY }}")' | Out-File "Plain Craft Launcher 2\Modules\ModSecret.vb"
-        (gc "Plain Craft Launcher 2\Modules\Base\ModBase.vb") -replace 'Public Const CommitHash As String = ""', 'Public Const CommitHash As String = "${{ github.sha }}"' | Out-File "Plain Craft Launcher 2\Modules\Base\ModBase.vb"
+        $ErrorActionPreference = 'Stop'
+        function Set-Marker {
+          param([string]$Path, [string]$Old, [string]$New)
+          $full = Join-Path $PWD.Path $Path
+          $text = [IO.File]::ReadAllText($full)
+          if (-not $text.Contains($Old)) { throw "未找到注入标记（文件已被改动？）：$Path`n$Old" }
+          [IO.File]::WriteAllText($full, $text.Replace($Old, $New))
+          Write-Host "已注入：$Path"
+        }
+        $msClientId = 'Public OAuthClientId As String = If(Environment.GetEnvironmentVariable("PCL_MS_CLIENT_ID"), "")'
+        Set-Marker "Plain Craft Launcher 2\Modules\ModSecret.vb" $msClientId $msClientId.Replace('""', '"' + $env:MS_CLIENT_ID_VALUE + '"')
+        $cfKey = 'Public CurseForgeAPIKey As String = If(Environment.GetEnvironmentVariable("PCL_CURSEFORGE_API_KEY"), "")'
+        Set-Marker "Plain Craft Launcher 2\Modules\ModSecret.vb" $cfKey $cfKey.Replace('""', '"' + $env:CURSEFORGE_API_KEY_VALUE + '"')
+        $commitHash = 'Public Const CommitHash As String = ""'
+        Set-Marker "Plain Craft Launcher 2\Modules\Base\ModBase.vb" $commitHash $commitHash.Replace('""', '"${{ github.sha }}"')
         
     - name: Restore NuGet Packages
       run: dotnet restore PCLCS\PCLCS.csproj

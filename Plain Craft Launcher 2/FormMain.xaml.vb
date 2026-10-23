@@ -449,7 +449,7 @@ Public Class FormMain
             Telemetry("启动")
             '开源版本提示
             If VersionBranchMain = "OpenSource" Then
-                MyMsgBox($"该版本为本仓库的社区开源分支，相对官方开源版做了以下调整：{vbCrLf}- 主题与隐藏皮肤：默认全部解锁{vbCrLf}- MC 本体下载：已解除限制{vbCrLf}- 检查更新：定向至本仓库的 GitHub Releases{vbCrLf}{vbCrLf}以下特性仍需要自行配置：{vbCrLf}- CurseForge API 调用：需要自行申请 API Key，然后添加到 ModSecret.vb 的开头{vbCrLf}- 正版登录：需要自行向微软申请 Client ID，然后添加到 ModSecret.vb 的开头", "开源版本说明")
+                MyMsgBox($"该版本为本仓库的社区开源分支，相对官方开源版做了以下调整：{vbCrLf}- 主题与隐藏皮肤：默认全部解锁{vbCrLf}- MC 本体下载：已解除限制{vbCrLf}- CurseForge 资源搜索与下载：已配置 API Key{vbCrLf}- 检查更新：定向至本仓库的 GitHub Releases{vbCrLf}{vbCrLf}以下特性仍需要自行配置：{vbCrLf}- 正版登录：自建 Azure 应用会被 Mojang 拒绝，需使用官方正式版", "开源版本说明")
             End If
         End Sub, "初始化", ThreadPriority.Lowest)
 
